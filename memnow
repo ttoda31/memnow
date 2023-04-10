@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+import subprocess
+
+import click
+import pandas as pd
+
+
+@click.command()
+@click.option("--users", "-u", is_flag=True, help="show users")
+@click.option("--limit", "-l", default=0, help="limit of lines")
+def memnow(users, limit):
+    df = smem_as_dataframe(users)
+    if limit > 0 and len(df) > limit:
+        df = df[:limit]
+
+    if users:
+        df = df.set_index("User")
+        columns = ["USS", "PSS", "RSS", "Swap", "Count"]
+    else:
+        _get_command = lambda pid: _run_cmd(f"sudo cat /proc/{pid}/cmdline")
+        df["Command"] = df["PID"].map(_get_command)
+        is_too_long = df["Command"].str.len() >= 50
+        too_long = df[is_too_long]["Command"]
+        df.loc[is_too_long, "Command"] = too_long.str.slice(stop=23) + "..." + too_long.str.slice(start=-23)
+        df = df.set_index("PID")
+        columns = ["User", "USS", "PSS", "RSS", "Swap", "Name", "Command"]
+
+    df = df[columns]
+    pd.set_option("display.max_rows", len(df))
+    print(df)
+
+
+def smem_as_dataframe(users):
+    """`smem`コマンド結果をDataFrameで取得
+
+    ```bash
+    $ sudo smem -u
+    User     Count     Swap      USS      PSS      RSS
+    colord       1     1612        4        4        8
+    nginx        5    26192       20       20       40
+    gearmand     1     1228       32       32       44
+    ...
+    $ sudo smem -c "pid user swap uss pss rss name"
+     PID User         Swap      USS      PSS      RSS Name
+     907 root         1124     1264     1368     2528 vmtoolsd
+    5487 root         1364      892     1370     6544 winbindd
+    5500 root         1336      912     1390     6576 winbindd
+    ...
+    ```
+    """
+    cmd = "sudo smem -s uss -r -k "
+    if users:
+        options = "-u"
+    else:
+        options = '-c "pid user swap uss pss rss name"'
+
+    stdout = _run_cmd(cmd + options)
+
+    line_break = "[LINE_BREAK]"
+    stdout = stdout.replace("\n", line_break)  # 改行文字列を置換（次行の`split`で改行コード"\n"も消えてしまうため）
+    stdout = " ".join(stdout.split())  # 複数空白を空白1つに変換
+    lines = [line.strip().split() for line in stdout.split(line_break)]  # 行毎に要素を抽出
+    lines = lines[:-1]  # 空の最終行を削除
+
+    df = pd.DataFrame(lines[1:], columns=lines[0])
+    return df
+
+
+def _run_cmd(cmd):
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, _ = p.communicate()
+    return stdout.decode("utf-8").strip()
+
+
+if __name__ == "__main__":
+    memnow()

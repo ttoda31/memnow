@@ -6,10 +6,11 @@ import pandas as pd
 
 
 @click.command()
-@click.option("--users", "-u", is_flag=True, help="show users")
+@click.option("--users", "-u", is_flag=True, help="show by users")
+@click.option("--user-filter", "-U", default="", help="show only specified user")
 @click.option("--limit", "-l", default=0, help="limit of lines")
-def memnow(users, limit):
-    df = smem_as_dataframe(users)
+def memnow(users, user_filter, limit):
+    df = smem_as_dataframe(users, user_filter)
     if limit > 0 and len(df) > limit:
         df = df[:limit]
 
@@ -30,7 +31,7 @@ def memnow(users, limit):
     print(df)
 
 
-def smem_as_dataframe(users):
+def smem_as_dataframe(users, user_filter):
     """`smem`コマンド結果をDataFrameで取得
 
     ```bash
@@ -53,6 +54,8 @@ def smem_as_dataframe(users):
         options = "-u"
     else:
         options = '-c "pid user swap uss pss rss name"'
+        if user_filter:
+            options += f" -U {user_filter}"
 
     stdout = _run_cmd(cmd + options)
 

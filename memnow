@@ -23,20 +23,17 @@ def memnow():
         df = df[:limit]
 
     if users:
-        df = df.set_index("User")
-        columns = ["USS", "PSS", "RSS", "Swap", "Count"]
+        columns = ["User", "USS", "PSS", "RSS", "Swap", "Count"]
     else:
         _get_command = lambda pid: _run_cmd(["cat", f"/proc/{pid}/cmdline"])
         df["Command"] = df["PID"].map(_get_command)
-        is_too_long = df["Command"].str.len() >= 50
+        is_too_long = df["Command"].str.len() >= 60
         too_long = df[is_too_long]["Command"]
-        df.loc[is_too_long, "Command"] = too_long.str.slice(stop=23) + "..." + too_long.str.slice(start=-23)
-        df = df.set_index("PID")
-        columns = ["User", "USS", "PSS", "RSS", "Swap", "Name", "Command"]
+        df.loc[is_too_long, "Command"] = too_long.str.slice(stop=27) + "..." + too_long.str.slice(start=-27)
+        columns = ["PID", "User", "USS", "PSS", "RSS", "Swap", "Name", "Command"]
 
     df = df[columns]
-    pd.set_option("display.max_rows", len(df))
-    print(df)
+    print(df.to_string(index=False))
 
 
 def smem_as_dataframe(users, user_filter):

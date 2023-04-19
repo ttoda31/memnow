@@ -7,10 +7,14 @@ import pandas as pd
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("--users", "-u", action="store_true", help="show by users")
-    parser.add_argument("--user-filter", "-U", default="", help="show only specified user")
-    parser.add_argument("--limit", "-l", type=int, default=0, help="limit of lines")
+    parser.add_argument("--all", "-a", action="store_true", help="show all lines")
+    limit_help_text = "limit shown lines to N (default: 5)\n"
+    limit_help_text += "0 or negative N means no limit\n"
+    limit_help_text += "if '--all' is set, '--limit' will be ignored"
+    parser.add_argument("--limit", "-l", type=int, default=5, metavar="N", help=limit_help_text)
+    parser.add_argument("--user-filter", "-uf", default="", metavar="USER", help="show only specified user")
     args = parser.parse_args()
     return args.users, args.user_filter, args.limit
 
@@ -47,6 +51,9 @@ def memnow():
     # 末尾行区切り線の挿入
     # Note: replace()は文字列先頭からのみ処理 -> 文字列をスライス[::-1]で一旦反転
     output = output[::-1].replace("\n", f"\n{separator}\n", 1)[::-1]
+
+    limit_info = f"(Top {limit} results)" if is_limited else "(All results)"
+    output += "\n" + limit_info.rjust(len(header))
 
     print(output, flush=True)
 

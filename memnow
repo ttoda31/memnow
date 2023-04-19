@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
+import argparse
 import subprocess
 
-import click
 import pandas as pd
 
 
-@click.command()
-@click.option("--users", "-u", is_flag=True, help="show by users")
-@click.option("--user-filter", "-U", default="", help="show only specified user")
-@click.option("--limit", "-l", default=0, help="limit of lines")
-def memnow(users, user_filter, limit):
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--users", "-u", action="store_true", help="show by users")
+    parser.add_argument("--user-filter", "-U", default="", help="show only specified user")
+    parser.add_argument("--limit", "-l", type=int, default=0, help="limit of lines")
+    args = parser.parse_args()
+    return args.users, args.user_filter, args.limit
+
+
+def memnow():
+    users, user_filter, limit = parse_args()
+
     df = smem_as_dataframe(users, user_filter)
     if limit > 0 and len(df) > limit:
         df = df[:limit]

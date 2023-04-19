@@ -16,19 +16,19 @@ def parse_args():
     parser.add_argument("--limit", "-l", type=int, default=5, metavar="N", help=limit_help_text)
     parser.add_argument("--user-filter", "-uf", default="", metavar="USER", help="show only specified user")
     args = parser.parse_args()
-    return args.users, args.user_filter, args.limit
+    return args
 
 
 def memnow():
-    users, user_filter, limit = parse_args()
+    args = parse_args()
 
-    df = smem_as_dataframe(users, user_filter)
-    is_limited = limit > 0 and len(df) - 1 > limit
+    df = smem_as_dataframe(args.users, args.user_filter)
+    is_limited = not args.all and args.limit > 0 and len(df) - 1 > args.limit
     if is_limited:
         totals = df[-1:]
-        df = df[:limit]
+        df = df[: args.limit]
 
-    if users:
+    if args.users:
         columns = ["User", "USS", "PSS", "RSS", "Swap", "Count"]
     else:
         _get_command = lambda pid: _run_cmd(["cat", f"/proc/{pid}/cmdline"])
@@ -52,7 +52,7 @@ def memnow():
     # Note: replace()は文字列先頭からのみ処理 -> 文字列をスライス[::-1]で一旦反転
     output = output[::-1].replace("\n", f"\n{separator}\n", 1)[::-1]
 
-    limit_info = f"(Top {limit} results)" if is_limited else "(All results)"
+    limit_info = f"(Top {args.limit} results)" if is_limited else "(All results)"
     output += "\n" + limit_info.rjust(len(header))
 
     print(output, flush=True)

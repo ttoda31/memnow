@@ -42,20 +42,19 @@ def memnow():
 def smem_as_dataframe(users, user_filter):
     """`smem`コマンド結果をDataFrameで取得
 
-    ```bash
-    $ sudo smem -u
-    User     Count     Swap      USS      PSS      RSS
-    colord       1     1612        4        4        8
-    nginx        5    26192       20       20       40
-    gearmand     1     1228       32       32       44
-    ...
-    $ sudo smem -c "pid user swap uss pss rss name"
-     PID User         Swap      USS      PSS      RSS Name
-     907 root         1124     1264     1368     2528 vmtoolsd
-    5487 root         1364      892     1370     6544 winbindd
-    5500 root         1336      912     1390     6576 winbindd
-    ...
-    ```
+    参考:
+        $ sudo smem -u
+        User     Count     Swap      USS      PSS      RSS
+        colord       1     1612        4        4        8
+        nginx        5    26192       20       20       40
+        gearmand     1     1228       32       32       44
+        ...
+        $ sudo smem -c "pid user swap uss pss rss name"
+         PID User         Swap      USS      PSS      RSS Name
+         907 root         1124     1264     1368     2528 vmtoolsd
+        5487 root         1364      892     1370     6544 winbindd
+        5500 root         1336      912     1390     6576 winbindd
+        ...
     """
     cmd = ["sudo", "smem", "-s", "uss", "-r", "-k"]
     if users:

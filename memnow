@@ -18,7 +18,7 @@ def memnow(users, user_filter, limit):
         df = df.set_index("User")
         columns = ["USS", "PSS", "RSS", "Swap", "Count"]
     else:
-        _get_command = lambda pid: _run_cmd(f"sudo cat /proc/{pid}/cmdline")
+        _get_command = lambda pid: _run_cmd(["cat", f"/proc/{pid}/cmdline"])
         df["Command"] = df["PID"].map(_get_command)
         is_too_long = df["Command"].str.len() >= 50
         too_long = df[is_too_long]["Command"]
@@ -49,13 +49,13 @@ def smem_as_dataframe(users, user_filter):
     ...
     ```
     """
-    cmd = "sudo smem -s uss -r -k "
+    cmd = ["sudo", "smem", "-s", "uss", "-r", "-k"]
     if users:
-        options = "-u"
+        options = ["-u"]
     else:
-        options = '-c "pid user swap uss pss rss name"'
+        options = ["-c", "pid user swap uss pss rss name"]
         if user_filter:
-            options += f" -U {user_filter}"
+            options += ["-U", user_filter]
 
     stdout = _run_cmd(cmd + options)
 
@@ -70,7 +70,7 @@ def smem_as_dataframe(users, user_filter):
 
 
 def _run_cmd(cmd):
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, _ = p.communicate()
     return stdout.decode("utf-8").strip()
 

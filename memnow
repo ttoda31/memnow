@@ -78,6 +78,7 @@ def smem_as_dataframe(users, user_filter):
 def _run_cmd(cmd):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, _ = p.communicate()
+    stdout = stdout.replace(b"\x00", b"")  # NULL文字を削除
     return stdout.decode("utf-8")
 
 

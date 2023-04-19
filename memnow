@@ -31,9 +31,17 @@ def memnow():
         too_long = df[is_too_long]["Command"]
         df.loc[is_too_long, "Command"] = too_long.str.slice(stop=27) + "..." + too_long.str.slice(start=-27)
         columns = ["PID", "User", "USS", "PSS", "RSS", "Swap", "Name", "Command"]
-
     df = df[columns]
-    print(df.to_string(index=False))
+
+    output = df.to_string(index=False)
+    header = output.split("\n", 1)[0]
+    separator = "-" * len(header)  # 先頭行の長さを基に区切り線を作成
+    output = output.replace("\n", f"\n{separator}\n", 1)  # 先頭行区切り線の挿入
+    # 末尾行区切り線の挿入
+    # Note: replace()は文字列先頭からのみ処理 -> 文字列をスライス[::-1]で一旦反転
+    output = output[::-1].replace("\n", f"\n{separator}\n", 1)[::-1]
+
+    print(output, flush=True)
 
 
 def smem_as_dataframe(users, user_filter):
@@ -53,9 +61,9 @@ def smem_as_dataframe(users, user_filter):
         5500 root         1336      912     1390     6576 winbindd
         ...
     """
-    cmd = ["sudo", "smem", "-s", "uss", "-r", "-k"]
+    cmd = ["sudo", "smem", "-s", "uss", "-r", "-k", "-t"]
     if users:
-        options = ["-u"]
+        options = ["-u", "-c", "count swap uss pss rss user"]
     else:
         options = ["-c", "pid user swap uss pss rss name"]
         if user_filter:
@@ -69,7 +77,7 @@ def smem_as_dataframe(users, user_filter):
     stdout = stdout.replace(line_break, "\n")  # 改行文字を復元
 
     df = pd.read_csv(StringIO(stdout), delim_whitespace=True)
-    return df
+    return df.drop(index=len(df) - 2).fillna("").reset_index()  # total表示の区切り線行を削除し、NaNを空文字化
 
 
 def _run_cmd(cmd):

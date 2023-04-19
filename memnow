@@ -19,7 +19,9 @@ def memnow():
     users, user_filter, limit = parse_args()
 
     df = smem_as_dataframe(users, user_filter)
-    if limit > 0 and len(df) > limit:
+    is_limited = limit > 0 and len(df) - 1 > limit
+    if is_limited:
+        totals = df[-1:]
         df = df[:limit]
 
     if users:
@@ -31,7 +33,12 @@ def memnow():
         too_long = df[is_too_long]["Command"]
         df.loc[is_too_long, "Command"] = too_long.str.slice(stop=27) + "..." + too_long.str.slice(start=-27)
         columns = ["PID", "User", "USS", "PSS", "RSS", "Swap", "Name", "Command"]
-    df = df[columns]
+
+    if is_limited:
+        dots = pd.DataFrame([["..."] * len(columns)], columns=columns)
+        df = pd.concat([df, dots, totals], ignore_index=True)
+
+    df = df[columns].fillna("")
 
     output = df.to_string(index=False)
     header = output.split("\n", 1)[0]
@@ -77,7 +84,8 @@ def smem_as_dataframe(users, user_filter):
     stdout = stdout.replace(line_break, "\n")  # 改行文字を復元
 
     df = pd.read_csv(StringIO(stdout), delim_whitespace=True)
-    return df.drop(index=len(df) - 2).fillna("").reset_index()  # total表示の区切り線行を削除し、NaNを空文字化
+    df = df.drop(index=len(df) - 2)  # totalsオプションによる区切り線行を削除
+    return df.reset_index()
 
 
 def _run_cmd(cmd):

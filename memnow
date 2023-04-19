@@ -68,9 +68,9 @@ def smem_as_dataframe(users, user_filter):
     stdout = _run_cmd(cmd + options)
 
     line_break = "[LINE_BREAK]"
-    stdout = stdout.replace("\n", line_break)  # 改行文字列を置換（次行の`split`で改行コード"\n"も消えてしまうため）
+    stdout = stdout.replace("\n", line_break)  # 改行文字を置換（次行の`split`で改行コード"\n"も消えてしまうため）
     stdout = " ".join(stdout.split())  # 複数空白を空白1つに変換
-    stdout = stdout.replace(line_break, "\n")  # 改行文字列を置換（次行の`split`で改行コード"\n"も消えてしまうため）
+    stdout = stdout.replace(line_break, "\n")  # 改行文字を復元
 
     df = pd.read_csv(StringIO(stdout), delim_whitespace=True)
     return df

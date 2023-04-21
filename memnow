@@ -9,13 +9,13 @@ import pandas as pd
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("--users", "-u", action="store_true", help="show by users")
     parser.add_argument("--all", "-a", action="store_true", help="show all lines")
     limit_help_text = "limit shown lines to N (default: 5)\n"
     limit_help_text += "0 or negative N means no limit\n"
     limit_help_text += "if '--all' is set, '--limit' will be ignored"
     parser.add_argument("--limit", "-l", type=int, default=5, metavar="N", help=limit_help_text)
-    parser.add_argument("--user-filter", "-uf", default="", metavar="USER", help="show only specified user")
+    parser.add_argument("--user-filter", "-u", default="", metavar="USER", help="show only specified user")
+    parser.add_argument("--users", "-U", action="store_true", help="show by users")
     verbose_help_text = "verbose\n"
     verbose_help_text += "full commands are shown"
     parser.add_argument("--verbose", "-v", action="store_true", help=verbose_help_text)

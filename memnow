@@ -16,6 +16,9 @@ def parse_args():
     limit_help_text += "if '--all' is set, '--limit' will be ignored"
     parser.add_argument("--limit", "-l", type=int, default=5, metavar="N", help=limit_help_text)
     parser.add_argument("--user-filter", "-uf", default="", metavar="USER", help="show only specified user")
+    verbose_help_text = "verbose\n"
+    verbose_help_text += "full commands are shown"
+    parser.add_argument("--verbose", "-v", action="store_true", help=verbose_help_text)
     args = parser.parse_args()
     return args
 
@@ -32,11 +35,7 @@ def memnow():
     if args.users:
         columns = ["User", "USS", "PSS", "RSS", "Swap", "Count"]
     else:
-        _get_command = lambda pid: _run_cmd(["cat", f"/proc/{pid}/cmdline"])
-        df["Command"] = df["PID"].map(_get_command)
-        is_too_long = df["Command"].str.len() >= 60
-        too_long = df[is_too_long]["Command"]
-        df.loc[is_too_long, "Command"] = too_long.str.slice(stop=27) + "..." + too_long.str.slice(start=-27)
+        df["Command"] = df["PID"].map(read_command)
         columns = ["PID", "User", "USS", "PSS", "RSS", "Swap", "Name", "Command"]
 
     if is_limited:
@@ -45,16 +44,8 @@ def memnow():
 
     df = df[columns].fillna("")
 
-    output = df.to_string(index=False)
-    header = output.split("\n", 1)[0]
-    separator = "-" * len(header)  # 先頭行の長さを基に区切り線を作成
-    output = output.replace("\n", f"\n{separator}\n", 1)  # 先頭行区切り線の挿入
-    # 末尾行区切り線の挿入
-    # Note: replace()は文字列先頭からのみ処理 -> 文字列をスライス[::-1]で一旦反転
-    output = output[::-1].replace("\n", f"\n{separator}\n", 1)[::-1]
-
     limit_info = f"(Top {args.limit} results)" if is_limited else "(All results)"
-    output += "\n" + limit_info.rjust(len(header))
+    output = make_output_text(df, footer=limit_info, verbose=args.verbose)
 
     print(output, flush=True)
     sys.exit(0)
@@ -97,6 +88,60 @@ def smem_as_dataframe(users, user_filter):
     return df.reset_index()
 
 
+def read_command(pid):
+    return _run_cmd(["cat", f"/proc/{pid}/cmdline"])
+
+
+def make_output_text(df, footer="", verbose=False):
+    # Command列の処理
+    has_commands = "Command" in df.columns.tolist()
+    if has_commands:
+        df["Command"] = df["Command"].str.strip()
+        if verbose:
+            commands = df["Command"]
+            del df["Command"]
+        else:
+            is_too_long = df["Command"].str.len() >= 40
+            too_long = df[is_too_long]["Command"]
+            df.loc[is_too_long, "Command"] = too_long.str.slice(stop=19) + "..." + too_long.str.slice(start=-18)
+
+    # 出力文字列のベースとしてDataFrameを文字列化
+    output = df.to_string(index=False)
+    width = len(output.split("\n", 1)[0])  # 1行目から幅を取得
+
+    # verbose（full command）表示処理
+    if has_commands and verbose:
+        width_cm = width - 4
+        indent = " " * 4
+
+        dots = "." * width_cm
+        commands = commands.iloc[:-1]  # totals行を削除
+        commands = commands[commands != "..."]  # limit行を削除
+        commands = commands.str.split(f"({dots})")
+        commands = commands[commands.str.len() > 0]
+        commands = commands.str.join("\n")
+        commands = commands.str.strip()
+        commands = commands.str.replace("\n\n", "\n")
+        commands = indent + commands
+        commands = commands.str.replace("\n", f"\n{indent}")
+
+        output = output.split("\n")
+        [output.insert(idx + 2, commands[idx]) for idx in reversed(range(commands.size))]
+        output = "\n".join(output)
+
+    # 先頭行と末尾行に区切り線を挿入
+    separator = "=" * width  # 区切り線文字列の作成
+    output = output.replace("\n", f"\n{separator}\n", 1)  # 先頭行
+    # Note: replace()は文字列先頭からのみ処理 -> 文字列全体をスライス[::-1]で一旦反転して処理
+    output = output[::-1].replace("\n", f"\n{separator}\n", 1)[::-1]  # 末尾行
+
+    # footerを追加（右寄せ）
+    if footer:
+        output += "\n" + footer.rjust(width)
+
+    return output
+
+
 def _run_cmd(cmd):
     try:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -106,7 +151,7 @@ def _run_cmd(cmd):
             print("Please install 'smem' or set PATH correctly", file=sys.stderr)
         sys.exit(1)
     stdout, _ = p.communicate()
-    stdout = stdout.replace(b"\x00", b"")  # NULL文字を削除
+    stdout = stdout.replace(b"\x00", b" ")  # NULL文字を変換
     return stdout.decode("utf-8")
 
 

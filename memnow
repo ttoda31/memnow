@@ -68,10 +68,13 @@ def smem_as_dataframe(users, user_filter):
         5500 root         1336      912     1390     6576 winbindd
         ...
     """
-    py2_bin = _run_cmd(["which", "python2"]).strip()  # smemはPython2で書かれているため、python2のPATHを取得
     smem_bin = _run_cmd(["which", "smem"]).strip()  # smemのPATHを取得
 
-    cmd = [py2_bin, smem_bin, "-s", "uss", "-r", "-k", "-t"]
+    # smemのshebangからpythonバージョンに応じたPATHを取得
+    smem_shebang = _run_cmd(["head", "-n", "1", smem_bin]).strip()  # smemのshebangを取得
+    py_bin = _run_cmd(["which", "python3" if "python3" in smem_shebang else "python2"]).strip()  # pythonのPATHを取得
+
+    cmd = [py_bin, smem_bin, "-s", "uss", "-r", "-k", "-t"]
     if users:
         options = ["-u", "-c", "count swap uss pss rss user"]
     else:

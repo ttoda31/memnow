@@ -86,7 +86,7 @@ def smem_as_dataframe(users, user_filter):
     stdout = " ".join(stdout.split())  # 複数空白を空白1つに変換
     stdout = stdout.replace(line_break, "\n")  # 改行文字を復元
 
-    df = pd.read_csv(StringIO(stdout), delim_whitespace=True)
+    df = pd.read_csv(StringIO(stdout), sep="\s+")  # noqa: スペース区切りのデータを読み込み
     df = df.drop(index=len(df) - 2)  # totalsオプションによる区切り線行を削除
     return df.reset_index()
 

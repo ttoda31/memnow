@@ -69,6 +69,9 @@ def smem_as_dataframe(users, user_filter):
         ...
     """
     smem_bin = _run_cmd(["which", "smem"]).strip()  # smemのPATHを取得
+    if not smem_bin:
+        print("smem command not found. Please install smem.", file=sys.stderr)
+        sys.exit(1)
 
     # smemのshebangからpythonバージョンに応じたPATHを取得
     smem_shebang = _run_cmd(["head", "-n", "1", smem_bin]).strip()  # smemのshebangを取得
